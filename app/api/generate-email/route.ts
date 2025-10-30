@@ -80,6 +80,9 @@ async function handler(req: NextRequest) {
       );
     }
 
+    console.error("Detailed error:", error);
+
+
     return NextResponse.json(
       { error: "Failed to generate email" },
       { status: 500 }

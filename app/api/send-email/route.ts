@@ -18,21 +18,24 @@ async function handler(req: NextRequest) {
         );
       }
 
-      // Verify with Abstract API
-      const response = await fetch(
-        `https://emailvalidation.abstractapi.com/v1/?api_key=${process.env.ABSTRACT_API_KEY}&email=${senderEmail}`,
-        { cache: "no-store" }
-      );
+      // ✅ Verify with MailboxLayer API instead
+const response = await fetch(
+  `https://apilayer.net/api/check?access_key=${process.env.MAILBOXLAYER_API_KEY}&email=${process.env.EMAIL_USER}`
+);
 
-      if (!response.ok) {
-        throw new Error("Failed to verify email");
-      }
+console.log("📡 MailboxLayer API status:", response.status);
 
-      const data = await response.json();
-      const isValid =
-        data.is_valid_format.value &&
-        data.deliverability === "DELIVERABLE" &&
-        !data.is_disposable_email.value;
+if (!response.ok) {
+  const errText = await response.text();
+  console.error("❌ MailboxLayer API response:", errText);
+  throw new Error("Failed to verify email");
+}
+
+const data = await response.json();
+console.log("📨 MailboxLayer API data:", data);
+
+const isValid = data.format_valid && data.mx_found && data.smtp_check;
+
 
       if (!isValid) {
         return NextResponse.json(
@@ -103,10 +106,12 @@ async function handler(req: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error sending email:", error);
+    // console.error("Error sending email:", error);
+     console.error("🚨 Detailed error while sending email:", error);
     if (error instanceof Error) {
+
       return NextResponse.json(
-        { error: "Failed to send email", details: error.message },
+        { error: "Failed to send email", details: error },
         { status: 500 }
       );
     }
